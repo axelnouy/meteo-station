@@ -5,7 +5,7 @@
 #include "DS1307.h"
 #define k_I2C_SDA_PIN 21 // Default SDA pin for ESP32
 #define k_I2C_SCL_PIN 22 // Default SCL pin for ESP32
-
+MyTime_t currentTime;
 
 void setup() {
   Serial.begin(9600);
@@ -18,7 +18,7 @@ void setup() {
 }
 
 void loop() {
-  MyTime_t currentTime;
+  
   if (getTimeFromRTC(&currentTime) == 0) {
     Serial.print("Current Time: ");
     Serial.print(currentTime.hour);

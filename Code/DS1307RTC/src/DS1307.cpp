@@ -3,8 +3,8 @@
 #include "Arduino.h"
 
 void initializeRTC(int sdaPin, int sclPin) {
-    Wire.begin(sdaPin, sclPin); // Initialize I2C with custom SDA and SCL pins
-    Wire.setClock(k_I2C_FREQUENCY);
+    Wire.begin(); // Initialize I2C with custom SDA and SCL pins
+    //Wire.setClock(k_I2C_FREQUENCY);
     return; // Return 0 to indicate success
 }
 
@@ -14,6 +14,7 @@ int getTimeFromRTC(MyTime_t* pTime)
 
   Wire.beginTransmission(k_I2C_DS1307_ADDRESS);
   Wire.write(0x00); // Set the register pointer to the seconds register
+  Wire.endTransmission(); // End the transmission to prepare for reading
   Wire.requestFrom(k_I2C_DS1307_ADDRESS, 7); // Request 7 bytes
   Wire.readBytes(buffer, 7); // Read the bytes into the buffer
   pTime->second = bcd2dec(buffer[0] & 0x7F); // Read seconds, mask to ignore the CH bit
