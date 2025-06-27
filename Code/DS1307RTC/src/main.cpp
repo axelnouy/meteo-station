@@ -13,7 +13,7 @@ void setup() {
    // Initialize I2C with custom SDA and SCL pins
 
   Serial.println("beginning I2C communication...");
-  initializeRTC(k_I2C_SDA_PIN, k_I2C_SCL_PIN);
+  Wire.begin();
   Serial.println("I2C communication started successfully!");
 }
 

@@ -1,22 +1,31 @@
 #include <Arduino.h>
-
 #include <Wire.h>
+#include "SI7034.h"
 
-#define k_SI7034_ADDRESS 0x70 // I2C address for SI7034
-#define k__MEASURE_HOLD1 0x7C // Command for temperature measurement without hold master
-#define k__MEASURE_HOLD2 0xA2 // Command for humidity measurement without hold master
 
 
 void setup() {
-  Wire.begin(); // Initialize I2C
+  Wire.begin();
   Serial.begin(9600);
-
   Serial.println("SI7034 I2C Test");
 }
 
+
+
 void loop() {
-  delay(1000); // Wait for a second
-  Wire.beginTransmission(k_SI7034_ADDRESS);
+  float temp = readTemperature();
+  float hum = readHumidity();
 
+  if (!isnan(temp) && !isnan(hum)) {
+    Serial.print("Temperature: ");
+    Serial.print(temp);
+    Serial.println(" °C");
+    Serial.print("Humidity: ");
+    Serial.print(hum);
+    Serial.println(" %RH");
+  } else {
+    Serial.println("Sensor read failed.");
+  }
+
+  delay(2000);
 }
-

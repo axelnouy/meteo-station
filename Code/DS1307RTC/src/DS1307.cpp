@@ -2,11 +2,7 @@
 #include "DS1307.h"
 #include "Arduino.h"
 
-void initializeRTC(int sdaPin, int sclPin) {
-    Wire.begin(); // Initialize I2C with custom SDA and SCL pins
-    //Wire.setClock(k_I2C_FREQUENCY);
-    return; // Return 0 to indicate success
-}
+
 
 int getTimeFromRTC(MyTime_t* pTime) 
 {
