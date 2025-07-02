@@ -8,14 +8,24 @@
 
 #include <LiquidCrystal.h>
 #include <Wire.h>
+#include <math.h>
 
 //define LCD ports -> arduino
+/*
 #define RS 12
 #define EN 11
 #define D4 5
 #define D5 4
 #define D6 3
 #define D7 2
+*/
+#define RS 2
+#define EN 3
+#define D4 4
+#define D5 5
+#define D6 6
+#define D7 7
+
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
@@ -24,15 +34,15 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 #define SDA A4  //Serial data line
 
 //define address for i2c transmitted info
-#define ADDR_SHT21_R '10000001'    //SHT21 adress in read, sensor for humidity and temperature
-#define ADDR_SHT21_W '10000000'    //SHT21 adress in write, sensor for humidity and temperature
+#define ADDR_SHT21_R 0b10000001    //SHT21 adress in read, sensor for humidity and temperature
+#define ADDR_SHT21_W 0b10000000    //SHT21 adress in write, sensor for humidity and temperature
 
-#define ADDR_RH '11100101'   //address for relative humidity measurement, hold master
-#define ADDR_T '11100011'    //address for temperature measurement, hold master
+#define ADDR_RH 0b11100101   //address for relative humidity measurement, hold master
+#define ADDR_T 0b11100011    //address for temperature measurement, hold master
 #define RES_RH 14   //resolution of the RH sensor
 #define RES_T 8     //resolution of the temperature sensor
 
-#define ADDR_P '5'    //address for pressure
+//#define ADDR_P '5'    //address for pressure
 
 #if 0
 #define I2C_ADD 0x40	// I2C device address
@@ -56,7 +66,7 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 float get_info_iic(char addr);
 void display_sensor_SHT21(float temp, float humi);
 
-#if 0
+/*
 float getHumidity(void);
 float getTemperature(void);
 
@@ -120,11 +130,11 @@ float getTemperature(void){
 	temp = (data[0] << 8);
 	temp += data[1];
 
-    result = -46.85 + 175.72*temp/(2**RES_T);
+    result = -46.85 + 175.72*temp/pow(2,RES_T);
 
     return result;
 }
-#endif
+*/
 
 
 float get_info_iic(char addr){
@@ -147,10 +157,10 @@ float get_info_iic(char addr){
 
     switch(addr){
         case ADDR_RH:
-            result = -6.0 + 125.0*temp/(2.0**RES_RH); 
+            result = -6.0 + 125.0*temp/pow(2.0,RES_RH); 
             break;
         case ADDR_T:
-            result = -46.85 + 175.72*temp/(2.0**RES_T);
+            result = -46.85 + 175.72*temp/pow(2.0,RES_T);
             break;
     }
     return result;
@@ -178,23 +188,22 @@ void setup() {
     delay(1000);
     lcd.clear();
     delay(200);
+    Wire.begin();
+    Serial.begin(9600);
+    Serial.print("hello world");
 }
 
 void loop() {
     // put your main code here, to run repeatedly:
-    float rh=5; //test value for relative humidity
-    float t=2;  //test value for temperature
-
-#if 0
-    float s_rh=0;
-    float s_temp=0;
-    s_rh = get_info_iic(ADDR_RH);
-    s_temp = get_info_iic(ADDR_T);
-
-    rh = -6 + 125*s_rh/(2**RES_RH);      //relative humidity above liquid water conversion
-    t = -46.85 + 175.72*s_temp/(2**RES_T);   //temperature conversion
-#endif
-
-    display_sensor_SHT21(get_info_iic(ADDR_T), get_info_iic(ADDR_RH)); 
-  
+    //float rh=5; //test value for relative humidity
+    //float t=2;  //test value for temperature
+    float rh, t;
+    rh = get_info_iic(ADDR_RH);
+    t= get_info_iic(ADDR_T);
+    Serial.print("temperature:");
+    Serial.println(t);
+    Serial.print("humidity:");
+    Serial.println(rh);
+    display_sensor_SHT21(t,rh); 
+    //display_sensor_SHT21(78.5 ,78.5); 
 }
