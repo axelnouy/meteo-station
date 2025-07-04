@@ -15,6 +15,8 @@ void setup() {
   Serial.println("beginning I2C communication...");
   Wire.begin();
   Serial.println("I2C communication started successfully!");
+  // Initialize the DS1307 RTC
+  initRTC(); 
 }
 
 void loop() {

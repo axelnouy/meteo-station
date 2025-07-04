@@ -13,8 +13,9 @@ void setup() {
 
 
 void loop() {
-  float temp = readTemperature();
-  float hum = readHumidity();
+  float temp = 0;
+  float hum = 0;
+  int result = readSi7034Data(&temp, &hum);
 
   if (!isnan(temp) && !isnan(hum)) {
     Serial.print("Temperature: ");
