@@ -12,7 +12,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-/*
+#define PROTEUS 0
+#if PROTEUS
     //PROTEUS define LCD ports -> arduino 
     #define RS 9    //RS pin of the LCD screen connected to pin 9 of the arduino
     #define EN 8
@@ -24,7 +25,7 @@
     //define i2c ports -> Arduino
     #define SCL A5  //serial clock line
     #define SDA A4  //Serial data line
-*/
+#else
 
     //REEL define LCD ports -> arduino 
     #define RS 2
@@ -33,7 +34,7 @@
     #define D5 5
     #define D6 6
     #define D7 7
-
+#endif
 
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
@@ -46,7 +47,9 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 #define ADDR_RH 0xF5   //address for relative humidity measurement, hold master
 #define ADDR_T 0xF3    //address for temperature measurement, hold master
 #define RES_RH 14   //resolution of the RH sensor
+#define RES_RHV2 16384
 #define RES_T 8     //resolution of the temperature sensor
+#define RES_TV2 256
 
 //#define ADDR_P '5'    //address for pressure
 
@@ -190,24 +193,18 @@ float get_info_iic(char addr){
     */
     
     if(addr==(char)ADDR_RH){
-        result = -6.0 + 125.0*temp/pow(2.0,RES_RH);
+        //result = -6.0 + 125.0*temp/pow(2.0,RES_RH);
+        result = -6.0 + 125.0*temp/RES_RHV2;
+        //temp &= ~0x0003;	// clean last two bits
+        //result = -6.0 + 125.0/65536 * (float)temp); // return relative humidity
     }
     else if(addr==(char)ADDR_T){
-        result = -46.85 + 175.72*temp/pow(2.0,RES_T);
+        result = -46.85 + 175.72*temp/RES_TV2;
+        //temp &= ~0x0003;	// clean last two bits
+        //result = -46.85 + 175.72/65536 * (float)temp); // return relative humidity
     }
     else result = 42.0;
 
-    
-/*
-    switch(addr){
-        case ADDR_RH:
-            result = -6.0 + 125.0*temp/pow(2.0,RES_RH); 
-            break;
-        case ADDR_T:
-            result = -46.85 + 175.72*temp/pow(2.0,RES_T);
-            break;
-    }
-*/
     return result;
 }
 
