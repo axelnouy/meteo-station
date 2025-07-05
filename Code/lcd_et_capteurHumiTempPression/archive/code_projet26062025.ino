@@ -1,22 +1,22 @@
 #include <LiquidCrystal.h>
-#define RS 12
-#define EN 11
-#define D4 5
-#define D5 4
-#define D6 3
-#define D7 2
+#define RS 2
+#define EN 3
+#define D4 4
+#define D5 5
+#define D6 6
+#define D7 7
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
-int get_info(capteur){
-    
+int get_info(int capteur){
+    int info = 5;
     return info;
 }
 
 void affich_capteurs(void){
     lcd.clear();
-    int temp=get_info(capteur_temp);
-    int hum=get_info(capteur_humi);
+    int temp= 10;//get_info(capteur_temp);
+    int hum= 50; //get_info(capteur_humi);
     lcd.setCursor(0,0);
     lcd.print("T:");
     lcd.print(temp);
@@ -30,11 +30,13 @@ void affich_capteurs(void){
 void setup() {
     // put your setup code here, to run once:
     lcd.begin(8, 2);
-    lcd.print("heeeeeee");
+    lcd.print("hee hee");
+    delay(5000);
 }
 
 void loop() {
     // put your main code here, to run repeatedly:
     affich_capteurs();
+    delay(1000);
   
 }
