@@ -16,11 +16,17 @@ int initRTC(void)
   }
   Second = Wire.read(); // Read the byte (not used, just to clear the buffer)
   if (Second & 0x80) { // Check if the CH bit is set
-    Serial.println("RTC is running.");
+    Serial.println("RTC is not running.");
+    Serial.println("Setting RTC to start the oscillator...");
+    Second &= 0x7F; // Clear the CH bit to start the oscillator
+    Wire.beginTransmission(k_I2C_DS1307_ADDRESS);
+    Wire.write(0x00); // Set the register pointer to the seconds register
+    Wire.write(Second); // Write the modified seconds value to the RTC
+    Wire.endTransmission(); // End the transmission
   }
   else
   {
-    Second &= 0x7f; // Set the CH bit to start the oscillator
+    Serial.println("RTC is running.");
   }
   return 0; // Success
 }

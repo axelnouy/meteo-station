@@ -27,6 +27,7 @@ MyTime_t currentTime;
 tDataPacket dataPacket;
 
 void printLocalDataLCD(float temperature, float humidity, MyTime_t currentTime);
+void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure, MyTime_t currentTime);
 void RecoverDataTaskCore1(void* pvParameters);
 void PrintDataTaskCore0(void* pvParameters);
 
@@ -41,7 +42,12 @@ void setup()
   Serial.println("Starting ESP32 LoRa Meteo Station...");
   Wire.begin(); // Initialize I2C communication
   Serial.println("I2C initialized.");
-  
+
+  if (initRTC() != 0)
+  {
+    Serial.println("Failed to initialize RTC.");
+    return; // Exit setup if RTC initialization fails
+  }
 
   if (getTimeFromRTC(&currentTime) == 0)
   {

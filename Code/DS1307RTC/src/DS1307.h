@@ -16,7 +16,6 @@ struct MyTime_t{
 };
 
 int initRTC(void);
-
 int getTimeFromRTC(MyTime_t* pTime);
 int setTimeToRTC(MyTime_t tTime);
 

@@ -15,7 +15,7 @@ struct MyTime_t{
   int year;   // Year (0-99, where 0 = 2000)
 };
 
-
+int initRTC(void);
 int getTimeFromRTC(MyTime_t* pTime);
 int setTimeToRTC(MyTime_t tTime);
 
