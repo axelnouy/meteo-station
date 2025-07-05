@@ -14,17 +14,25 @@
 #define D5 4
 #define D6 16
 #define D7 17
+
+#define ScreenWidth 20
+#define ScreenHeight 4
+
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 TaskHandle_t TaskCore0;
 TaskHandle_t TaskCore1;
-pthread_mutex_t mutex;
 
+pthread_mutex_t MutexLocalData;
 pthread_mutex_t MutexSensorData;
 pthread_mutex_t MutexTime;
 
+
 MyTime_t currentTime;
 tDataPacket dataPacket;
+float TemperatureLocal = 0.0;
+float HumidityLocal = 0.0;
+
 
 void printLocalDataLCD(float temperature, float humidity, MyTime_t currentTime);
 void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure, MyTime_t currentTime);
@@ -104,10 +112,10 @@ void PrintDataTaskCore0(void * pvParameters)
     delay(1000);
     if(countFrame <= 10) 
     {
-      pthread_mutex_lock(&mutex);
       pthread_mutex_lock(&MutexTime);
-      printLocalDataLCD(dataPacket.Temp, dataPacket.Hum, currentTime);
-      pthread_mutex_unlock(&mutex);
+      pthread_mutex_lock(&MutexLocalData);
+      printLocalDataLCD(TemperatureLocal, HumidityLocal, currentTime);
+      pthread_mutex_unlock(&MutexLocalData);
       pthread_mutex_unlock(&MutexTime);
     }
     else if(countFrame <= 20)
@@ -131,19 +139,17 @@ void PrintDataTaskCore0(void * pvParameters)
 
 void RecoverDataTaskCore1(void *pvParameters)
 {
-  float TemperatureLocal = 0.0;
-  float HumidityLocal = 0.0;
   int PacketSize = 0;
   Serial.println("RecoverDataTask running on core ");
   Serial.println(xPortGetCoreID());
   while (true)
   {
     delay(100);
+    pthread_mutex_lock(&MutexLocalData);
+    // Read local sensor data
     readSi7034Data(&TemperatureLocal, &HumidityLocal);
+    pthread_mutex_unlock(&MutexLocalData);
     
-    pthread_mutex_lock(&mutex);
-    dataPacket.Temp = TemperatureLocal;
-    dataPacket.Hum = HumidityLocal;
     // Check if a packet is available
     PacketSize = PacketAvailable();
     if(PacketSize!=0)
@@ -155,7 +161,6 @@ void RecoverDataTaskCore1(void *pvParameters)
       }
       pthread_mutex_unlock(&MutexSensorData);
     }
-    pthread_mutex_unlock(&mutex);
 
     pthread_mutex_lock(&MutexTime);
     getTimeFromRTC(&currentTime);
@@ -253,9 +258,8 @@ void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure, MyTime_
   lcd.print(Pressure);
   lcd.print(" hPa");
 
-  // print time
-  lcd.setCursor(0, 3);
-  lcd.print("Time: ");
+  // print time in the left down corner (last row, last possible position for 20x4 LCD)
+  lcd.setCursor(13, 3);
   lcd.print(currentTime.hour);
   lcd.print(":");
   if (currentTime.minute < 10) {
