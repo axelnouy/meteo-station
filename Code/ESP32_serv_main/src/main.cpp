@@ -5,6 +5,7 @@
 #include "DS1307.h"
 #include "SI7034.h"
 #include "LoraMeteo.h"
+#include "error.h"
 
 #include <pthread.h>
 
@@ -17,6 +18,8 @@
 
 #define ScreenWidth 20
 #define ScreenHeight 4
+
+#define SizeOfTimeMessage 8
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
@@ -34,10 +37,16 @@ float TemperatureLocal = 0.0;
 float HumidityLocal = 0.0;
 
 
-void printLocalDataLCD(float temperature, float humidity, MyTime_t currentTime);
-void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure, MyTime_t currentTime);
 void RecoverDataTaskCore1(void* pvParameters);
 void PrintDataTaskCore0(void* pvParameters);
+
+
+void printLocalDataLCD(float temperature, float humidity);
+void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure);
+
+void PrintTimeOnLCD(MyTime_t currentTime);
+void PrintTemperatureOnLCD(float temperature);
+void PrintHumidityOnLCD(float humidity);
 
 void setup()
 {
@@ -50,6 +59,13 @@ void setup()
   Serial.println("Starting ESP32 LoRa Meteo Station...");
   Wire.begin(); // Initialize I2C communication
   Serial.println("I2C initialized.");
+
+  // init Lora 
+  if (InitLoraServer() != ERROR_NONE)
+  {
+    Serial.println("Failed to initialize LoRa.");
+    return; // Exit setup if LoRa initialization fails
+  }
 
   if (initRTC() != 0)
   {
@@ -110,27 +126,25 @@ void PrintDataTaskCore0(void * pvParameters)
   
   while (true) {
     delay(1000);
-    if(countFrame <= 10) 
+    if(countFrame < 10) 
     {
-      pthread_mutex_lock(&MutexTime);
       pthread_mutex_lock(&MutexLocalData);
-      printLocalDataLCD(TemperatureLocal, HumidityLocal, currentTime);
+      printLocalDataLCD(TemperatureLocal, HumidityLocal);
       pthread_mutex_unlock(&MutexLocalData);
-      pthread_mutex_unlock(&MutexTime);
-    }
-    else if(countFrame <= 20)
-    {
-      pthread_mutex_lock(&MutexSensorData);
-      pthread_mutex_lock(&MutexTime);
-      PrintSensorDataLCD(dataPacket.Temp, dataPacket.Hum, dataPacket.Pres, currentTime);
-      pthread_mutex_unlock(&MutexSensorData);
-      pthread_mutex_unlock(&MutexTime);
-
     }
     else
     {
+      pthread_mutex_lock(&MutexSensorData);
+      PrintSensorDataLCD(dataPacket.Temp, dataPacket.Hum, dataPacket.Pres);
+      pthread_mutex_unlock(&MutexSensorData);
+    }
+    if(countFrame >= 20)
+    {
       countFrame = 0; // Reset the frame count
     }
+    pthread_mutex_lock(&MutexTime);
+    PrintTimeOnLCD(currentTime);
+    pthread_mutex_unlock(&MutexTime);
     countFrame++;
   }
 }
@@ -139,7 +153,8 @@ void PrintDataTaskCore0(void * pvParameters)
 
 void RecoverDataTaskCore1(void *pvParameters)
 {
-  int PacketSize = 0;
+  int LoraPacketAvailable = 0;
+  int error = 0;
   Serial.println("RecoverDataTask running on core ");
   Serial.println(xPortGetCoreID());
   while (true)
@@ -149,23 +164,21 @@ void RecoverDataTaskCore1(void *pvParameters)
     // Read local sensor data
     readSi7034Data(&TemperatureLocal, &HumidityLocal);
     pthread_mutex_unlock(&MutexLocalData);
-    
-    // Check if a packet is available
-    PacketSize = PacketAvailable();
-    if(PacketSize!=0)
+
+    pthread_mutex_lock(&MutexSensorData);
+    error = ReceivePacket(&dataPacket);
+    if (error != 0)
     {
-      pthread_mutex_lock(&MutexSensorData);
-      if(ReceivePacket(&dataPacket) != 0)
-      {
-        Serial.println("Error receiving packet");
-      }
-      pthread_mutex_unlock(&MutexSensorData);
+      Serial.print("Error receiving packet: ");
+      Serial.println(error);
     }
+    pthread_mutex_unlock(&MutexSensorData);
 
     pthread_mutex_lock(&MutexTime);
     getTimeFromRTC(&currentTime);
     pthread_mutex_unlock(&MutexTime);
 
+    /*
     Serial.print("Temperature: ");
     Serial.print(TemperatureLocal);
     Serial.println(" °C");
@@ -178,6 +191,7 @@ void RecoverDataTaskCore1(void *pvParameters)
     Serial.print(currentTime.minute);
     Serial.print(":");
     Serial.println(currentTime.second);
+    */
   }
 }
 
@@ -193,26 +207,58 @@ void RecoverDataTaskCore1(void *pvParameters)
 // - Humidity: float value of humidity in percentage
 // - currentTime: MyTime_t structure containing the current time
 //-----------------------------------------------------------------------------
-void printLocalDataLCD(float temperature, float humidity, MyTime_t currentTime)
+void printLocalDataLCD(float Temperature, float Humidity)
 {
   // Clear the LCD and print the local data
 
   // print temperature
   lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Temp: ");
-  lcd.print(temperature);
-  lcd.print(" C");
+  PrintTemperatureOnLCD(Temperature);
+  PrintHumidityOnLCD(Humidity);
+}
+
+//-----------------------------------------------------------------------------
+// Function to print sensor data on the LCD
+//-----------------------------------------------------------------------------
+// parameters:
+// - Temperature: float value of temperature in Celsius
+// - Humidity: float value of humidity in percentage
+// - Pressure: int value of pressure in hPa
+// - currentTime: MyTime_t structure containing the current time
+//-----------------------------------------------------------------------------
+void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure)
+{
+  // Clear the LCD and print the sensor data
+
+  // print temperature
+  lcd.clear();
+  PrintTemperatureOnLCD(Temperature);
   
   // print humidity
   lcd.setCursor(0, 1);
-  lcd.print("Hum: ");
-  lcd.print(humidity);
-  lcd.print(" %");
+  PrintHumidityOnLCD(Humidity);
 
-  // print time
+  // print pressure
   lcd.setCursor(0, 2);
-  lcd.print("Time: ");
+  lcd.print("P ");
+  lcd.print(Pressure);
+  lcd.print(" hPa");
+}
+
+
+//-----------------------------------------------------------------------------
+// Function to print Time on the LCD
+//-----------------------------------------------------------------------------
+// parameters:
+// - currentTime: MyTime_t structure containing the current time
+//-----------------------------------------------------------------------------
+void PrintTimeOnLCD(MyTime_t currentTime)
+{
+  // Print the current time on the LCD
+  lcd.setCursor(ScreenWidth-SizeOfTimeMessage, 3);
+  if (currentTime.hour < 10) {
+    lcd.print("0");
+  }
   lcd.print(currentTime.hour);
   lcd.print(":");
   if (currentTime.minute < 10) {
@@ -226,49 +272,22 @@ void printLocalDataLCD(float temperature, float humidity, MyTime_t currentTime)
   lcd.print(currentTime.second);
 }
 
-//-----------------------------------------------------------------------------
-// Function to print sensor data on the LCD
-//-----------------------------------------------------------------------------
-// parameters:
-// - Temperature: float value of temperature in Celsius
-// - Humidity: float value of humidity in percentage
-// - Pressure: int value of pressure in hPa
-// - currentTime: MyTime_t structure containing the current time
-//-----------------------------------------------------------------------------
-void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure, MyTime_t currentTime)
+
+void PrintTemperatureOnLCD(float temperature)
 {
-  // Clear the LCD and print the sensor data
-
-  // print temperature
-  lcd.clear();
+  // Print the temperature on the LCD
   lcd.setCursor(0, 0);
-  lcd.print("Temp: ");
-  lcd.print(Temperature);
+  lcd.print("T ");
+  lcd.print(temperature);
   lcd.print(" C");
-  
-  // print humidity
+}
+
+
+void PrintHumidityOnLCD(float humidity)
+{
+  // Print the humidity on the LCD
   lcd.setCursor(0, 1);
-  lcd.print("Hum: ");
-  lcd.print(Humidity);
+  lcd.print("H ");
+  lcd.print(humidity);
   lcd.print(" %");
-
-  // print pressure
-  lcd.setCursor(0, 2);
-  lcd.print("Pres: ");
-  lcd.print(Pressure);
-  lcd.print(" hPa");
-
-  // print time in the left down corner (last row, last possible position for 20x4 LCD)
-  lcd.setCursor(13, 3);
-  lcd.print(currentTime.hour);
-  lcd.print(":");
-  if (currentTime.minute < 10) {
-    lcd.print("0");
-  }
-  lcd.print(currentTime.minute);
-  lcd.print(":");
-  if (currentTime.second < 10) {
-    lcd.print("0");
-  }
-  lcd.print(currentTime.second);
 }
