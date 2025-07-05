@@ -14,6 +14,10 @@
 #define D5 4
 #define D6 16
 #define D7 17
+
+#define ScreenWidth 20
+#define ScreenHeight 4
+
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 TaskHandle_t TaskCore0;
@@ -254,8 +258,8 @@ void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure, MyTime_
   lcd.print(Pressure);
   lcd.print(" hPa");
 
-  // print time
-  lcd.setCursor(4, 20);
+  // print time in the left down corner (last row, last possible position for 20x4 LCD)
+  lcd.setCursor(13, 3);
   lcd.print(currentTime.hour);
   lcd.print(":");
   if (currentTime.minute < 10) {
