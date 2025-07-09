@@ -135,6 +135,8 @@ float get_info_SHT21(uint8_t addr);
 void display_sensor_SHT21(float temp, float humi);
 bmp180_coeff bmp_get_cal_param(void);
 void display_sensor_BMP180(float pressure, float humi);
+uint16_t bmp180_get_ut(void);
+uint32_t bmp180_get_up(void);
 
 void setup() {
     // put your setup code here, to run once:
@@ -159,8 +161,6 @@ void loop() {
     st= get_info_SHT21(ADDR_T);
 
     coeffListe = bmp_get_cal_param();
-
-
 
     display_sensor_SHT21(st,rh); 
     //display_sensor_SHT21(78.5 ,78.5); 
@@ -320,8 +320,8 @@ uint16_t bmp180_get_ut(void){
 }
 
 //read uncompensated pressure value
-uint16_t bmp180_get_up(void){
-    uint16_t UP;
+uint32_t bmp180_get_up(void){
+    uint32_t UP;
     Wire.beginTransmission(BMP180_ADDRESS);
     Wire.write(BMP180_START_MEASURMENT_REG);    //instructs the sensor to measure temperature
     Wire.write(BMP180_GET_PRESSURE_OSS0_CTRL);     //gets msb and lsb for temperature data
@@ -395,7 +395,7 @@ uint16_t bmp180_get_up(void){
 
   return rawPressure;
 #endif
-    return UT;
+    return UP;
 }
 
 float get_info_BMP180(char addr){ //pressure sensor
