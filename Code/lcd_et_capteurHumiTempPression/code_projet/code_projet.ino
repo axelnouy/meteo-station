@@ -54,6 +54,8 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 #define BMP180_ADDRESS                0x77   //i2c address
 #define BMP180_CHIP_ID                0x55   //id number
+#define BMP180_ERROR                  255    //returns 255, if communication error is occurred
+
 
 /* BMP180_START_MEASURMENT_REG controls */
 #define BMP180_GET_TEMPERATURE_CTRL   0x2E   //get temperature control
@@ -62,6 +64,8 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 #define BMP180_GET_PRESSURE_OSS2_CTRL 0xB4   //get pressure oversampling 4 time/oss2 control
 #define BMP180_GET_PRESSURE_OSS3_CTRL 0xF4   //get pressure oversampling 8 time/oss3 control
 
+#define oversampling_setting 0      //has value 0, 1, 2 or 3 for ultra low power, 
+                                    //standard, high, ultra high resolution
 
 #define BMP180_START_MEASURMENT_REG   0xF4   //start measurment  register
 #define BMP180_READ_ADC_MSB_REG       0xF6   //read adc msb  register
@@ -108,8 +112,6 @@ typedef struct {
     short MD;
 }bmp180_coeff;
 
-#define oversampling_setting 0      //has value 0, 1, 2 or 3 for ultra low power, 
-                                    //standard, high, ultra high resolution
 
 
 #if 0
@@ -322,122 +324,115 @@ uint16_t bmp180_get_ut(void){
 //read uncompensated pressure value
 uint32_t bmp180_get_up(void){
     uint32_t UP;
+    uint8_t  regControl = 0;
+
+    switch (oversampling_setting)
+    {
+        case 0:                 //oss0
+        regControl = BMP180_GET_PRESSURE_OSS0_CTRL;
+        break;
+
+        case 1:                 //oss1
+        regControl = BMP180_GET_PRESSURE_OSS1_CTRL;
+        break;
+
+        case 2:                 //oss2
+        regControl = BMP180_GET_PRESSURE_OSS2_CTRL;
+        break;
+
+        case 3:                 //oss3
+        regControl = BMP180_GET_PRESSURE_OSS3_CTRL;
+        break;
+    }
+
     Wire.beginTransmission(BMP180_ADDRESS);
-    Wire.write(BMP180_START_MEASURMENT_REG);    //instructs the sensor to measure temperature
-    Wire.write(BMP180_GET_PRESSURE_OSS0_CTRL);     //gets msb and lsb for temperature data
+    Wire.write(BMP180_START_MEASURMENT_REG);    //instructs the sensor to start measure
+    Wire.write(regControl);     //instructs the sensor to measure pressure
     Wire.endTransmission();
 
-    delay(5); 
+    swith(oversampling_setting){
+        case 0:
+            delay(5);
+            break;
+        case 1:
+            delay(8);
+            break;
+        case 2:
+            delay(14);
+            break;
+        case 3:
+            delay(26);
+            break;
+    }
+
     
     Wire.beginTransmission(BMP180_ADDRESS);
-    Wire.write(BMP180_READ_ADC_MSB_REG);
+    Wire.write(BMP180_READ_ADC_MSB_REG);       //informs sensor to get pressure data from sensor
     Wire.endTransmission();
-    Wire.requestFrom(BMP180_ADDRESS,2);       //gets 2 bytes of data from BMP180 sensor
-    UP  = Wire.read() << 8;                                //read msb
-    UP |= Wire.read();
+    Wire.requestFrom(BMP180_ADDRESS,3);       //gets 3 bytes of data from BMP180 sensor
+    
+    UP  = Wire.read() << 16;    //read msb
+    UP |= Wire.read()<<8;       //read lSB
+    UP |= Wire.read();          //read xlsb, resolution adjustment
 
-#if 0
-    uint8_t  regControl  = 0;
-  uint32_t rawPressure = 0;
+    UP >>=(8-oversampling_setting);
 
-  /* convert resolution to register control */
-  switch (_resolution)
-  {
-    case BMP180_ULTRALOWPOWER:                    //oss0
-      regControl = BMP180_GET_PRESSURE_OSS0_CTRL;
-      break;
-
-    case BMP180_STANDARD:                         //oss1
-      regControl = BMP180_GET_PRESSURE_OSS1_CTRL;
-      break;
-
-    case BMP180_HIGHRES:                          //oss2
-      regControl = BMP180_GET_PRESSURE_OSS2_CTRL;
-      break;
-
-    case BMP180_ULTRAHIGHRES:                     //oss3
-      regControl = BMP180_GET_PRESSURE_OSS3_CTRL;
-      break;
-  }
-
-  /* send pressure measurement command */
-  if (write8(BMP180_START_MEASURMENT_REG, regControl) != true) return BMP180_ERROR; //error handler, collision on i2c bus
-
-  /* set measurement delay */
-  switch (_resolution)
-  {
-    case BMP180_ULTRALOWPOWER:
-      delay(5);
-      break;
-
-    case BMP180_STANDARD:
-      delay(8);
-      break;
-
-    case BMP180_HIGHRES:
-      delay(14);
-      break;
-
-    case BMP180_ULTRAHIGHRES:
-      delay(26);
-      break;
-  }
-
-  /* read result msb + lsb */
-  rawPressure = read16(BMP180_READ_ADC_MSB_REG);        //16-bits
-  if (rawPressure == BMP180_ERROR) return BMP180_ERROR; //error handler, collision on i2c bus
-
-  /* read result xlsb */
-  rawPressure <<= 8;
-  rawPressure |= read8(BMP180_READ_ADC_XLSB_REG);       //19-bits
-
-  rawPressure >>= (8 - _resolution);
-
-  return rawPressure;
-#endif
     return UP;
 }
 
+int32_t computeB5(int32_t UT, bmp180_coeff p_param){
+  int32_t X1 = ((UT - (int32_t)p_param.AC6) * (int32_t)p_param.AC5) >> 15;
+  int32_t X2 = ((int32_t)p_param.MC << 11) / (X1 + (int32_t)p_param.MD);
+
+  return X1 + X2;
+}
+
+
 float get_info_BMP180(char addr){ //pressure sensor
-    uint16_t temp;
-    uint8_t data[2];
-    float result=0.0;
+    int32_t  UT       = 0;
+    int32_t  UP       = 0;
+    int32_t  B3       = 0;
+    int32_t  B5       = 0;
+    int32_t  B6       = 0;
+    int32_t  X1       = 0;
+    int32_t  X2       = 0;
+    int32_t  X3       = 0;
+    int32_t  pressure = 0;
+    uint32_t B4       = 0;
+    uint32_t B7       = 0;
 
-    //Request that sht21 transmits temperature data to processor
-    Wire.beginTransmission(I2C_BMP180);
-    Wire.write(addr);     //warns temperature sensor for future data collection
-    Wire.endTransmission();
-    delay(85);              //minimal delay for a good temperature transmission
-    Wire.requestFrom(I2C_BMP180,3);       //gets 3 bytes of data from SHT21 sensor
+    UT = bmp180_get_ut();                                            //read uncompensated temperature, 16-bit
+    if (UT == BMP180_ERROR) return BMP180_ERROR;                          //error handler, collision on i2c bus
+
+    UP = bmp180_get_up();                                               //read uncompensated pressure, 19-bit
+    if (UP == BMP180_ERROR) return BMP180_ERROR;                          //error handler, collision on i2c bus
+
+    B5 = computeB5(UT);
+
+    /* pressure calculation */
+    B6 = B5 - 4000;
+    X1 = ((int32_t)_calCoeff.bmpB2 * ((B6 * B6) >> 12)) >> 11;
+    X2 = ((int32_t)_calCoeff.bmpAC2 * B6) >> 11;
+    X3 = X1 + X2;
+    B3 = ((((int32_t)_calCoeff.bmpAC1 * 4 + X3) << _resolution) + 2) / 4;
+
+    X1 = ((int32_t)_calCoeff.bmpAC3 * B6) >> 13;
+    X2 = ((int32_t)_calCoeff.bmpB1 * ((B6 * B6) >> 12)) >> 16;
+    X3 = ((X1 + X2) + 2) >> 2;
+    B4 = ((uint32_t)_calCoeff.bmpAC4 * (X3 + 32768L)) >> 15;
+    B7 = (UP - B3) * (50000UL >> _resolution);
     
-    if(Wire.available()!=3)
-    {
-        return -1;
-    }
+    if (B4 == 0) return BMP180_ERROR;                                     //safety check, avoiding division by zero
 
-    data[0] = Wire.read();  // read data (MSB)
-    data[1] = Wire.read();  // read data (LSB)
-    Wire.read();
+    if   (B7 < 0x80000000) pressure = (B7 * 2) / B4;
+    else                   pressure = (B7 / B4) * 2;
 
-    temp = (data[0] << 8);
-    temp += data[1];
- 
-    temp &= ~0x0003;  // clean last two bits
-    
-    if(addr==(char)ADDR_RH){
-        //result = -6.0 + 125.0*temp/pow(2.0,RES_RH);
-        //result = -6.0 + 125.0*temp/RES_RHV2;
-        //temp &= ~0x0003;  // clean last two bits
-        result = -6.0 + 125.0/65536 * (float)temp; // return relative humidity
-    }
-    else if(addr==(char)ADDR_T){
-        //result = -46.85 + 175.72*temp/RES_TV2;
-        
-        result = -46.85 + 175.72/65536 * (float)temp; // return relative humidity
-    }
-    else result = 42.0;
+    X1 = pow((pressure >> 8), 2);
+    X1 = (X1 * 3038L) >> 16;
+    X2 = (-7357L * pressure) >> 16;
 
-    return result;
+    return pressure = pressure + ((X1 + X2 + 3791L) >> 4);
+
 }
 
 
