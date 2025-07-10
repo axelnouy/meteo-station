@@ -99,20 +99,20 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 //***************************************************************
 
 typedef struct {
-    short AC1;
-    short AC2;
-    short AC3;
-    unsigned short AC4;
-    unsigned short AC5;
-    unsigned short AC6;
-    short B1;
-    short B2;
-    short MB;
-    short MC;
-    short MD;
+    short cAC1;
+    short cAC2;
+    short cAC3;
+    unsigned short cAC4;
+    unsigned short cAC5;
+    unsigned short cAC6;
+    short cB1;
+    short cB2;
+    short cMB;
+    short cMC;
+    short cMD;
 }bmp180_coeff;
 
-
+static bmp180_coeff p_param;
 
 #if 0
 #define I2C_ADD 0x40  // I2C device address
@@ -135,7 +135,7 @@ typedef struct {
 //function prototypes ******************************************************
 float get_info_SHT21(uint8_t addr);
 void display_sensor_SHT21(float temp, float humi);
-bmp180_coeff bmp_get_cal_param(void);
+int bmp_get_cal_param(void);
 void display_sensor_BMP180(float pressure, float humi);
 uint16_t bmp180_get_ut(void);
 uint32_t bmp180_get_up(void);
@@ -155,14 +155,14 @@ void loop() {
     //float rh=5; //test value for relative humidity
     //float t=2;  //test value for temperature
     float rh, st;
-    bmp180_coeff coeffListe;
+    //bmp180_coeff coeffListe;
     rh = 0;
     st = 0;
    
     rh = get_info_SHT21(ADDR_RH);
     st= get_info_SHT21(ADDR_T);
 
-    coeffListe = bmp_get_cal_param();
+    if(bmp_get_cal_param()!=0) puts("erreur init param");
 
     display_sensor_SHT21(st,rh); 
     //display_sensor_SHT21(78.5 ,78.5); 
@@ -240,7 +240,7 @@ void display_sensor_BMP180(float pressure, float humi){
     delay(700);
 }
 
-bmp180_coeff bmp_get_cal_param(void){
+int bmp_get_cal_param(void){
     int nb_coeff = 22;          //22 bytes to retrieve to form the 11 coeff
     uint8_t data[nb_coeff];     //buffer to collect data
     int i=0;
@@ -263,40 +263,40 @@ bmp180_coeff bmp_get_cal_param(void){
 
     //memcpy(p_param, data, 22);
     
-    p_param.AC1 = (data[0]<<8);
-    p_param.AC1 += data[1];
+    p_param.cAC1 = (data[0]<<8);
+    p_param.cAC1 += data[1];
 
-    p_param.AC2 = (data[2]<<8);
-    p_param.AC2 += data[3];
+    p_param.cAC2 = (data[2]<<8);
+    p_param.cAC2 += data[3];
 
-    p_param.AC3 = (data[4]<<8);
-    p_param.AC3 += data[5];
+    p_param.cAC3 = (data[4]<<8);
+    p_param.cAC3 += data[5];
 
-    p_param.AC4 = (data[6]<<8);
-    p_param.AC4 += data[7];
+    p_param.cAC4 = (data[6]<<8);
+    p_param.cAC4 += data[7];
 
-    p_param.AC5 = (data[8]<<8);
-    p_param.AC5 += data[9];
+    p_param.cAC5 = (data[8]<<8);
+    p_param.cAC5 += data[9];
 
-    p_param.AC6 = (data[10]<<8);
-    p_param.AC6 += data[11];
+    p_param.cAC6 = (data[10]<<8);
+    p_param.cAC6 += data[11];
 
-    p_param.B1 = (data[12]<<8);
-    p_param.B1 += data[13];
+    p_param.cB1 = (data[12]<<8);
+    p_param.cB1 += data[13];
 
-    p_param.B2 = (data[14]<<8);
-    p_param.B2 += data[15];
+    p_param.cB2 = (data[14]<<8);
+    p_param.cB2 += data[15];
 
-    p_param.MB = (data[16]<<8);
-    p_param.MB += data[17];
+    p_param.cMB = (data[16]<<8);
+    p_param.cMB += data[17];
 
-    p_param.MC = (data[18]<<8);
-    p_param.MC += data[19];
+    p_param.cMC = (data[18]<<8);
+    p_param.cMC += data[19];
 
-    p_param.MD = (data[20]<<8);
-    p_param.MD += data[21];
+    p_param.cMD = (data[20]<<8);
+    p_param.cMD += data[21];
 
-   return p_param;
+   return 0;
     
 }
 
@@ -350,7 +350,7 @@ uint32_t bmp180_get_up(void){
     Wire.write(regControl);     //instructs the sensor to measure pressure
     Wire.endTransmission();
 
-    swith(oversampling_setting){
+    switch(oversampling_setting){
         case 0:
             delay(5);
             break;
@@ -380,9 +380,9 @@ uint32_t bmp180_get_up(void){
     return UP;
 }
 
-int32_t computeB5(int32_t UT, bmp180_coeff p_param){
-  int32_t X1 = ((UT - (int32_t)p_param.AC6) * (int32_t)p_param.AC5) >> 15;
-  int32_t X2 = ((int32_t)p_param.MC << 11) / (X1 + (int32_t)p_param.MD);
+int32_t computeB5(int32_t UT){
+  int32_t X1 = ((UT - (int32_t)p_param.cAC6) * (int32_t)p_param.cAC5) >> 15;
+  int32_t X2 = ((int32_t)p_param.cMC << 11) / (X1 + (int32_t)p_param.cMD);
 
   return X1 + X2;
 }
@@ -391,15 +391,15 @@ int32_t computeB5(int32_t UT, bmp180_coeff p_param){
 float get_info_BMP180(char addr){ //pressure sensor
     int32_t  UT       = 0;
     int32_t  UP       = 0;
-    int32_t  B3       = 0;
-    int32_t  B5       = 0;
-    int32_t  B6       = 0;
+    int32_t  cB3       = 0;
+    int32_t  cB5       = 0;
+    int32_t  cB6       = 0;
     int32_t  X1       = 0;
     int32_t  X2       = 0;
     int32_t  X3       = 0;
     int32_t  pressure = 0;
-    uint32_t B4       = 0;
-    uint32_t B7       = 0;
+    uint32_t cB4       = 0;
+    uint32_t cB7       = 0;
 
     UT = bmp180_get_ut();                                            //read uncompensated temperature, 16-bit
     if (UT == BMP180_ERROR) return BMP180_ERROR;                          //error handler, collision on i2c bus
@@ -407,25 +407,25 @@ float get_info_BMP180(char addr){ //pressure sensor
     UP = bmp180_get_up();                                               //read uncompensated pressure, 19-bit
     if (UP == BMP180_ERROR) return BMP180_ERROR;                          //error handler, collision on i2c bus
 
-    B5 = computeB5(UT);
+    cB5 = computeB5(UT);
 
     /* pressure calculation */
-    B6 = B5 - 4000;
-    X1 = ((int32_t)_calCoeff.bmpB2 * ((B6 * B6) >> 12)) >> 11;
-    X2 = ((int32_t)_calCoeff.bmpAC2 * B6) >> 11;
+    cB6 = cB5 - 4000;
+    X1 = ((int32_t)p_param.cB2 * ((cB6 * cB6) >> 12)) >> 11;
+    X2 = ((int32_t)p_param.cAC2 * cB6) >> 11;
     X3 = X1 + X2;
-    B3 = ((((int32_t)_calCoeff.bmpAC1 * 4 + X3) << _resolution) + 2) / 4;
+    cB3 = ((((int32_t)p_param.cAC1 * 4 + X3) << oversampling_setting) + 2) / 4;
 
-    X1 = ((int32_t)_calCoeff.bmpAC3 * B6) >> 13;
-    X2 = ((int32_t)_calCoeff.bmpB1 * ((B6 * B6) >> 12)) >> 16;
+    X1 = ((int32_t)p_param.cAC3 * cB6) >> 13;
+    X2 = ((int32_t)p_param.cB1 * ((cB6 * cB6) >> 12)) >> 16;
     X3 = ((X1 + X2) + 2) >> 2;
-    B4 = ((uint32_t)_calCoeff.bmpAC4 * (X3 + 32768L)) >> 15;
-    B7 = (UP - B3) * (50000UL >> _resolution);
+    cB4 = ((uint32_t)p_param.cAC4 * (X3 + 32768L)) >> 15;
+    cB7 = (UP - cB3) * (50000UL >> oversampling_setting);
     
-    if (B4 == 0) return BMP180_ERROR;                                     //safety check, avoiding division by zero
+    if (cB4 == 0) return BMP180_ERROR;            //safety check, avoiding division by zero
 
-    if   (B7 < 0x80000000) pressure = (B7 * 2) / B4;
-    else                   pressure = (B7 / B4) * 2;
+    if   (cB7 < 0x80000000) pressure = (cB7 * 2) / cB4;
+    else                   pressure = (cB7 / cB4) * 2;
 
     X1 = pow((pressure >> 8), 2);
     X1 = (X1 * 3038L) >> 16;
