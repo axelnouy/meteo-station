@@ -95,6 +95,8 @@ void loop()
 
   // Display the sensor data on the LCD
   display_sensor_SHT21(st, rh);
+  Serial.print("Battery : ");
+  Serial.println(getBatteryLevel());
 
   // Send the LoRa packet
   if (SendLoRaPacket(DataPacket) != ERROR_NONE)
