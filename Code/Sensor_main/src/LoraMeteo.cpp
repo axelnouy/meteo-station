@@ -87,6 +87,11 @@ int SendLoRaPacket(tDataPacket DataPacket)
     error = ERROR_SEND_PACKET;
     goto ERREUR;
   }
+  if (!LoRa.write((uint8_t*)&DataPacket.BatteryLevelRaw, sizeof(DataPacket.BatteryLevelRaw)))
+  {
+    error = ERROR_SEND_PACKET;
+    goto ERREUR;
+  }
   // Check if the packet was sent successfully
   LoRa.endPacket();
 ERREUR:
