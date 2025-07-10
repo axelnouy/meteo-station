@@ -12,6 +12,7 @@
 #include "SI7034.h"
 #include "LoraMeteo.h"
 #include "error.h"
+#include "Battery.h"
 
 
 
@@ -60,6 +61,7 @@ void PrintTimeOnLCD(MyTime_t currentTime);
 void PrintTemperatureOnLCD(float temperature);
 void PrintHumidityOnLCD(float humidity);
 void PrintServerInfoOnLCD();
+void PrintBatteryLevelIconOnLCD(int batteryLevelRaw);
 
 void handleRoot();
 void handleNotFound();
@@ -116,6 +118,11 @@ void setup()
   startWebServer();
 
   lcd.begin(20, 4);
+  lcd.createChar(k_BATTERY_EMPTY_CHAR, (byte*)batteryEmpty);
+  lcd.createChar(k_BATTERY_25_CHAR, (byte*)battery25);
+  lcd.createChar(k_BATTERY_50_CHAR, (byte*)battery50);
+  lcd.createChar(k_BATTERY_75_CHAR, (byte*)battery75);
+  lcd.createChar(k_BATTERY_FULL_CHAR, (byte*)batteryFull);
   lcd.print("hee hee");
   lcd.setCursor(0,1);
   lcd.print(WiFi.localIP().toString());
@@ -167,6 +174,7 @@ void PrintDataTaskCore0(void * pvParameters)
     {
       pthread_mutex_lock(&MutexSensorData);
       PrintSensorDataLCD(dataPacket.Temp, dataPacket.Hum, dataPacket.Pres);
+      PrintBatteryLevelIconOnLCD(dataPacket.BatteryLevelRaw);
       pthread_mutex_unlock(&MutexSensorData);
     }
     else if(WiFi.status() == WL_CONNECTED)
@@ -345,12 +353,18 @@ void PrintTemperatureOnLCD(float temperature)
 void PrintHumidityOnLCD(float humidity)
 {
   // Print the humidity on the LCD
-  lcd.setCursor(0, 2);
+  lcd.setCursor(0, 0);
   lcd.print("H ");
   lcd.print(humidity);
   lcd.print(" %");
 }
 
+void PrintBatteryLevelIconOnLCD(int batteryLevelRaw)
+{
+  // Print the battery level on the LCD
+  lcd.setCursor(19, 1);
+  lcd.write((byte)convertBatteryLevelToPourcentage(batteryLevelRaw));
+}
 
 
 

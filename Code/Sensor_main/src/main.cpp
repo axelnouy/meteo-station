@@ -71,6 +71,7 @@ void loop()
 {
   static float rh = 0;
   static float st = 0;
+  static float BatteryLevel = 0;
   static tDataPacket DataPacket;
   digitalWrite(k_LED, HIGH); // Turn the LED on
   Serial.println("LED is ON");     // Print message to serial monitor
@@ -82,9 +83,11 @@ void loop()
   // Read temperature and humidity from SHT21 sensor
   rh = get_info_SHT21(ADDR_RH);
   st = get_info_SHT21(ADDR_T);
+  BatteryLevel = getBatteryLevelRaw(); // Read the battery level
   DataPacket.Temp = st; // Store temperature in DataPacket
   DataPacket.Hum = rh;  // Store humidity in DataPacket
   DataPacket.Pres = 0;  // Store pressure in DataPacket (not available)
+  DataPacket.BatteryLevelRaw = BatteryLevel; // Store battery level in DataPacket
 
   // Print the sensor data to the Serial Monitor
   Serial.print("Temperature: ");
@@ -96,7 +99,7 @@ void loop()
   // Display the sensor data on the LCD
   display_sensor_SHT21(st, rh);
   Serial.print("Battery : ");
-  Serial.println(getBatteryLevel());
+  Serial.println(BatteryLevel);
 
   // Send the LoRa packet
   if (SendLoRaPacket(DataPacket) != ERROR_NONE)

@@ -38,7 +38,7 @@ int ReceivePacket(tDataPacket* pDataPacket)
   // verify if the packet size matches the expected size
   Serial.print("Packet Size: ");
   Serial.println(packetSize);
-  if(packetSize != 10) {
+  if(packetSize != 12) {
     error = -2; // Packet size mismatch
     goto ERREUR;
   }
@@ -60,14 +60,13 @@ ERREUR:
 
 
 
-int InitLoraSensor(int CsPin, int ResetPin, int LoraSpreadingFactor)
+int InitLoraSensor()
 {
   int error = ERROR_NONE;
-  SPIClass* spi = new SPIClass(HSPI);
-  spi->begin(k_LORA_SCK, k_LORA_MISO, k_LORA_MOSI, k_LORA_CS); 
+  SPIClass* spi = new SPIClass();
+  spi->begin();
   LoRa.setSPI(*spi);
-  LoRa.setPins(k_LORA_CS, k_LORA_RESET, k_LORA_DIO0);
-
+  LoRa.setPins(k_LORA_CS_SENSOR, k_LORA_RS_SENSOR);
   if (!LoRa.begin(868E6)) {
     Serial.println("Starting LoRa failed!");
     error = ERROR_INIT_LORA;
@@ -75,7 +74,6 @@ int InitLoraSensor(int CsPin, int ResetPin, int LoraSpreadingFactor)
   }
  
   LoRa.setSpreadingFactor(k_LORA_SPREADING_FACTOR);
-  LoRa.setTimeout(1000); // Set timeout for LoRa operations
 
 ERREUR:
   return error;

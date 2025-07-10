@@ -8,14 +8,16 @@
 #define k_LORA_SCK 5
 #define k_LORA_CS 18
 #define k_LORA_DIO0 26
+#define k_LORA_CS_SENSOR 10
+#define k_LORA_RS_SENSOR 9
 
 struct tDataPacket
 {
   float Temp;
   float Hum;
   int Pres;
+  int BatteryLevelRaw;
 };
-
 
 
 int InitLoraServer();
