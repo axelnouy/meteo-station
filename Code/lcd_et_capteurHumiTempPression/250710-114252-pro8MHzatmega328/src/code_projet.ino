@@ -136,9 +136,10 @@ static bmp180_coeff p_param;
 float get_info_SHT21(uint8_t addr);
 void display_sensor_SHT21(float temp, float humi);
 int bmp_get_cal_param(void);
-void display_sensor_BMP180(float pressure, float humi);
+void display_sensor_BMP180(float pressure);
 uint16_t bmp180_get_ut(void);
 uint32_t bmp180_get_up(void);
+float compute_pressure(void);
 
 void setup() {
     // put your setup code here, to run once:
@@ -154,18 +155,23 @@ void loop() {
     // put your main code here, to run repeatedly:
     //float rh=5; //test value for relative humidity
     //float t=2;  //test value for temperature
-    float rh, st;
+    float rh, st, press;
     //bmp180_coeff coeffListe;
     rh = 0;
     st = 0;
+    press = 0;
    
     rh = get_info_SHT21(ADDR_RH);
     st= get_info_SHT21(ADDR_T);
 
     if(bmp_get_cal_param()!=0) puts("erreur init param");
 
+    press = compute_pressure();
+
     display_sensor_SHT21(st,rh); 
     //display_sensor_SHT21(78.5 ,78.5); 
+    delay(5000);
+    display_sensor_BMP180(press);
 }
 
 //function definition *********************************************************
@@ -227,17 +233,12 @@ void display_sensor_SHT21(float temp, float humi){
 }
 
 //display of informations from sensor BMP180
-void display_sensor_BMP180(float pressure, float humi){ 
+void display_sensor_BMP180(float pressure){ 
     lcd.clear();
     lcd.setCursor(0,0); //display temperature on ligne 1
     lcd.print("P:");
     lcd.print(pressure);
     lcd.print("hPa");
-    lcd.setCursor(0,1); //display humidity on ligne 2
-    lcd.print("H:");
-    lcd.print(humi);
-    lcd.print("RH");
-    delay(700);
 }
 
 int bmp_get_cal_param(void){
@@ -323,7 +324,9 @@ uint16_t bmp180_get_ut(void){
 
 //read uncompensated pressure value
 uint32_t bmp180_get_up(void){
+    int nb_data = 3;    //number of data to get from component
     uint32_t UP;
+    uint8_t data[nb_data];
     uint8_t  regControl = 0;
 
     switch (oversampling_setting)
@@ -371,9 +374,15 @@ uint32_t bmp180_get_up(void){
     Wire.endTransmission();
     Wire.requestFrom(BMP180_ADDRESS,3);       //gets 3 bytes of data from BMP180 sensor
     
-    UP  = Wire.read() << 16;    //read msb
-    UP |= Wire.read()<<8;       //read lSB
-    UP |= Wire.read();          //read xlsb, resolution adjustment
+    data[0] = Wire.read();      //read msb
+    data[1] = Wire.read();      //read lSB
+    data[2] = Wire.read();      //read xlsb, resolution adjustment
+
+    //UP = data[0]<<16;    
+    UP = data[0];
+    UP<<=16;
+    UP |= data[1]<<8;       
+    UP |= data[2];          
 
     UP >>=(8-oversampling_setting);
 
@@ -388,7 +397,7 @@ int32_t computeB5(int32_t UT){
 }
 
 
-float get_info_BMP180(char addr){ //pressure sensor
+float compute_pressure(void){ //pressure sensor
     int32_t  UT       = 0;
     int32_t  UP       = 0;
     int32_t  cB3       = 0;
