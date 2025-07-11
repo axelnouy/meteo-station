@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define PROTEUS 0
+#define PROTEUS 1
 #if PROTEUS
     //PROTEUS define LCD ports -> arduino 
     #define RS 9    //RS pin of the LCD screen connected to pin 9 of the arduino
@@ -155,23 +155,25 @@ void loop() {
     // put your main code here, to run repeatedly:
     //float rh=5; //test value for relative humidity
     //float t=2;  //test value for temperature
-    float rh, st, press;
+    float rh, st, pressure;
     //bmp180_coeff coeffListe;
     rh = 0;
     st = 0;
-    press = 0;
+    pressure = 0;
    
     rh = get_info_SHT21(ADDR_RH);
     st= get_info_SHT21(ADDR_T);
 
-    if(bmp_get_cal_param()!=0) puts("erreur init param");
+    //if(bmp_get_cal_param()!=0) lcd.print("erreur init param");
+    bmp_get_cal_param();
 
-    press = compute_pressure();
+    pressure = compute_pressure();
 
-    display_sensor_SHT21(st,rh); 
+    //display_sensor_SHT21(st,rh); 
     //display_sensor_SHT21(78.5 ,78.5); 
-    delay(5000);
-    display_sensor_BMP180(press);
+    //delay(3000);
+    display_sensor_BMP180(pressure);
+    delay(3000);
 }
 
 //function definition *********************************************************
@@ -229,7 +231,7 @@ void display_sensor_SHT21(float temp, float humi){
     lcd.print("H:");
     lcd.print(humi);
     lcd.print("RH");
-    delay(700);
+    //delay(700);
 }
 
 //display of informations from sensor BMP180
@@ -247,7 +249,7 @@ int bmp_get_cal_param(void){
     int i=0;
     //short AC1, AC2, AC3, B1, B2, MB, MC, MD;
     //unsigned short AC4, AC5, AC6;
-    bmp180_coeff p_param;
+    //bmp180_coeff p_param;
     //p_param = (bmp180_coeff*)malloc(sizeof(bmp_coeff));
     
     Wire.beginTransmission(I2C_BMP180);
