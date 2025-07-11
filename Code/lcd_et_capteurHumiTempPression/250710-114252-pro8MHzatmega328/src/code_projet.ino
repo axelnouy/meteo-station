@@ -258,11 +258,11 @@ int bmp_get_cal_param(void){
     //delay(85);            
     Wire.requestFrom(I2C_BMP180,nb_coeff);       //gets 22 bytes of data from BMP180 sensor
 
+    if(Wire.available()!=nb_coeff) return -1;
+
     for(i=0; i<nb_coeff; i++){
         data[i] = Wire.read();
     }
-
-    if(Wire.available()!=nb_coeff) return -1;
 
     //memcpy(p_param, data, 22);
     
