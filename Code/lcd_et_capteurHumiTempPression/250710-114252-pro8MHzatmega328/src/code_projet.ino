@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "BMP180.h"
 
 #define PROTEUS 0
 #if PROTEUS
@@ -47,17 +48,16 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 #define ADDR_RH 0xF5   //address for relative humidity measurement, hold master
 #define ADDR_T 0xF3    //address for temperature measurement, hold master
 
+/*
 //define i2c address for pressure sensor
-#define I2C_BMP180 0xF4     //start measurment  register
-#define I2C_BMP180_R 0b11101111
-#define I2C_BMP180_W 0b11101110
+//#define I2C_BMP180_MEAS 0xF4     //start measurment  register
 
 #define BMP180_ADDRESS                0x77   //i2c address
 #define BMP180_CHIP_ID                0x55   //id number
 #define BMP180_ERROR                  255    //returns 255, if communication error is occurred
 
 
-/* BMP180_START_MEASURMENT_REG controls */
+//BMP180_START_MEASURMENT_REG controls 
 #define BMP180_GET_TEMPERATURE_CTRL   0x2E   //get temperature control
 #define BMP180_GET_PRESSURE_OSS0_CTRL 0x34   //get pressure oversampling 1 time/oss0 control
 #define BMP180_GET_PRESSURE_OSS1_CTRL 0x74   //get pressure oversampling 2 time/oss1 control
@@ -113,33 +113,16 @@ typedef struct {
 }bmp180_coeff;
 
 static bmp180_coeff p_param;
-
-#if 0
-#define I2C_ADD 0x40  // I2C device address
-//informations from description of 
-//==============================================================================
-#define TRIGGER_T_MEASUREMENT_HM 0XE3   // command trig. temp meas. hold master
-#define TRIGGER_RH_MEASUREMENT_HM 0XE5  // command trig. hum. meas. hold master
-#define TRIGGER_T_MEASUREMENT_NHM 0XF3  // command trig. temp meas. no hold master
-#define TRIGGER_RH_MEASUREMENT_NHM 0XF5 // command trig. hum. meas. no hold master
-#define USER_REGISTER_W 0XE6        // command writing user register
-#define USER_REGISTER_R 0XE7            // command reading user register
-#define SOFT_RESET 0XFE                 // command soft reset
-//==============================================================================
-// HOLD MASTER - SCL line is blocked (controlled by sensor) during measurement
-// NO HOLD MASTER - allows other I2C communication tasks while sensor performing
-// measurements.
-#endif
-
+*/
 
 //function prototypes ******************************************************
 float get_info_SHT21(uint8_t addr);
 void display_sensor_SHT21(float temp, float humi);
-int bmp_get_cal_param(void);
+//int bmp_get_cal_param(void);
 void display_sensor_BMP180(float pressure);
-uint16_t bmp180_get_ut(void);
-uint32_t bmp180_get_up(void);
-float compute_pressure(void);
+//uint16_t bmp180_get_ut(void);
+//uint32_t bmp180_get_up(void);
+//float compute_pressure(void);
 
 void setup() {
     // put your setup code here, to run once:
@@ -177,9 +160,9 @@ void loop() {
 
     pressure = compute_pressure();
 
-    //display_sensor_SHT21(st,rh); 
+    display_sensor_SHT21(st,rh); 
     //display_sensor_SHT21(78.5 ,78.5); 
-    //delay(3000);
+    delay(3000);
     display_sensor_BMP180(pressure); //display pressure in hPa
     delay(3000);
 }
@@ -250,6 +233,7 @@ void display_sensor_BMP180(float pressure){
     lcd.print("hPa");
 }
 
+/*
 int bmp_get_cal_param(void){
     int nb_coeff = 22;          //22 bytes to retrieve to form the 11 coeff
     uint8_t data[nb_coeff];     //buffer to collect data
@@ -261,7 +245,7 @@ int bmp_get_cal_param(void){
     
     Wire.beginTransmission(BMP180_ADDRESS);
     Wire.write(AC1_MSB_addr);     //calibration adresses begin with AC1_MSB
-    Wire.write(AC1_LSB_addr);     //calibration adresses begin with AC1_LSB
+    //Wire.write(AC1_LSB_addr);     //calibration adresses begin with AC1_LSB
     Wire.endTransmission();
     //delay(85);            
     Wire.requestFrom(BMP180_ADDRESS,nb_coeff);       //gets 22 bytes of data from BMP180 sensor
@@ -436,7 +420,7 @@ float compute_pressure(void){ //pressure sensor
 
     cB5 = computeB5(UT);
 
-    /* pressure calculation */
+    // pressure calculation 
     cB6 = cB5 - 4000;
     X1 = ((int32_t)p_param.cB2 * ((cB6 * cB6) >> 12)) >> 11;
     X2 = ((int32_t)p_param.cAC2 * cB6) >> 11;
@@ -461,5 +445,6 @@ float compute_pressure(void){ //pressure sensor
     return pressure = pressure + ((X1 + X2 + 3791L) >> 4);
 
 }
+*/
 
 
