@@ -168,7 +168,7 @@ int32_t computeB5(int32_t UT){
 }
 
 
-float compute_pressure(void){ //pressure sensor
+uint32_t compute_pressure(void){ //pressure sensor
     int32_t  UT       = 0;
     int32_t  UP       = 0;
     int32_t  cB3       = 0;

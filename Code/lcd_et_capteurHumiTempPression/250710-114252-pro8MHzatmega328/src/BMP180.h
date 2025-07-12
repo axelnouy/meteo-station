@@ -76,5 +76,5 @@ int bmp_get_cal_param(void);
 uint16_t bmp180_get_ut(void);
 uint32_t bmp180_get_up(void);
 int32_t computeB5(int32_t UT);
-float compute_pressure(void);
+uint32_t compute_pressure(void);
 
