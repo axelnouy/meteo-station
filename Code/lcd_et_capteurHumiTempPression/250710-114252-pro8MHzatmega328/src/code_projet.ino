@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define PROTEUS 1
+#define PROTEUS 0
 #if PROTEUS
     //PROTEUS define LCD ports -> arduino 
     #define RS 9    //RS pin of the LCD screen connected to pin 9 of the arduino
@@ -143,12 +143,20 @@ float compute_pressure(void);
 
 void setup() {
     // put your setup code here, to run once:
+    Serial.begin(9600); //start serial communication at 9600 baud rate
+    Serial.println("Meteo station starting...");
     lcd.begin(8, 2);  //screen has 2 lignes and 8 columns
     lcd.print("heehee");  //test text
     delay(1000);
     lcd.clear();
     delay(200);
-    Wire.begin();
+    Wire.begin(); //start i2c communication
+    Wire.setClock(100000); //set i2c clock to 100kHz
+    
+    lcd.print("Meteo station");
+    delay(1000);
+    lcd.clear();
+
 }
 
 void loop() {
@@ -172,7 +180,7 @@ void loop() {
     //display_sensor_SHT21(st,rh); 
     //display_sensor_SHT21(78.5 ,78.5); 
     //delay(3000);
-    display_sensor_BMP180(pressure);
+    display_sensor_BMP180(pressure); //display pressure in hPa
     delay(3000);
 }
 
@@ -238,8 +246,7 @@ void display_sensor_SHT21(float temp, float humi){
 void display_sensor_BMP180(float pressure){ 
     lcd.clear();
     lcd.setCursor(0,0); //display temperature on ligne 1
-    lcd.print("P:");
-    lcd.print(pressure);
+    lcd.print(pressure/100.0);
     lcd.print("hPa");
 }
 
@@ -252,16 +259,25 @@ int bmp_get_cal_param(void){
     //bmp180_coeff p_param;
     //p_param = (bmp180_coeff*)malloc(sizeof(bmp_coeff));
     
-    Wire.beginTransmission(I2C_BMP180);
+    Wire.beginTransmission(BMP180_ADDRESS);
     Wire.write(AC1_MSB_addr);     //calibration adresses begin with AC1_MSB
+    Wire.write(AC1_LSB_addr);     //calibration adresses begin with AC1_LSB
     Wire.endTransmission();
     //delay(85);            
-    Wire.requestFrom(I2C_BMP180,nb_coeff);       //gets 22 bytes of data from BMP180 sensor
+    Wire.requestFrom(BMP180_ADDRESS,nb_coeff);       //gets 22 bytes of data from BMP180 sensor
 
+    Serial.print("bmp_get_cal_param: ");
+    Serial.print(Wire.available());
     if(Wire.available()!=nb_coeff) return -1;
 
     for(i=0; i<nb_coeff; i++){
         data[i] = Wire.read();
+    }
+
+    Serial.println("data received");
+    for(i=0; i<nb_coeff; i++){
+        Serial.print(data[i], HEX);
+        Serial.print(" ");
     }
 
     //memcpy(p_param, data, 22);
