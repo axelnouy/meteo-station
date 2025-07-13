@@ -6,9 +6,13 @@
 #define k_BATTERY_75_CHAR 3
 #define k_BATTERY_FULL_CHAR 4
 
+#define Sensor 0
+
 float convertBatteryLevelToVoltage(int batteryLevel);
 int convertBatteryLevelToPourcentage(int batteryLevel);
+#if Sensor
 int getBatteryLevelRaw();
+#endif
 
 
 const byte batteryEmpty[8] = {

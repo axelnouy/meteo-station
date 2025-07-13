@@ -30,6 +30,8 @@ int convertBatteryLevelToPourcentage(int batteryLevel) {
     }
 }
 
+#if Sensor
 int getBatteryLevelRaw() {
     return analogRead(A1); // Read the raw analog value from pin A1
 }
+#endif

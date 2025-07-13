@@ -43,8 +43,8 @@ tDataPacket dataPacket;
 float TemperatureLocal = 0.0;
 float HumidityLocal = 0.0;
 
-const char* ssid     = "NothingAxel";
-const char* password = "motdepasse";
+const char* ssid     = "Livebox-72C0";
+const char* password = "QmGt53gsmqRTfzJj49";
 
 // Set web server port number to 80
 WebServer server(80);
@@ -228,6 +228,14 @@ void RecoverDataTaskCore1(void *pvParameters)
       Serial.print("Error receiving packet: ");
       Serial.println(error);
     }
+    Serial.print("Received packet: ");
+    Serial.print("Temp: ");
+    Serial.print(dataPacket.Temp);
+    Serial.print(" Hum: ");
+    Serial.print(dataPacket.Hum);
+    Serial.print(" Pres: ");
+    Serial.print(dataPacket.Pres);
+
     pthread_mutex_unlock(&MutexSensorData);
 
     pthread_mutex_lock(&MutexTime);
@@ -285,7 +293,7 @@ void PrintSensorDataLCD(float Temperature, float Humidity, int Pressure)
   // print pressure
   lcd.setCursor(0, 3);
   lcd.print("P ");
-  lcd.print(Pressure);
+  lcd.print(Pressure/100.0);
   lcd.print(" hPa");
 }
 

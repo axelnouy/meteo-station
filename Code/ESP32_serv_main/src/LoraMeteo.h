@@ -15,8 +15,8 @@ struct tDataPacket
 {
   float Temp;
   float Hum;
-  int Pres;
-  int BatteryLevelRaw;
+  int32_t Pres;
+  int8_t BatteryLevelRaw;
 };
 
 

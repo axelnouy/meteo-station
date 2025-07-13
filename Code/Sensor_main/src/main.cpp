@@ -2,9 +2,11 @@
 
 #include <LiquidCrystal.h>
 #include <Wire.h>
+#include "BMP180.h"
 #include "LoraMeteo.h"
 #include "error.h"
 #include "Battery.h"
+#include "SHT21.h"
 
 #define RS 2
 #define EN 3
@@ -24,7 +26,6 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 
 //function definition
-float get_info_SHT21(char addr);
 void display_sensor_SHT21(float temp, float humi);
 
 void setup() {
@@ -60,6 +61,12 @@ void setup() {
   // Initialize I2C communication
   Wire.begin();
 
+  if(bmp_get_cal_param() != ERROR_NONE)
+  {
+    Serial.println("Failed to initialize BMP180");
+    while(1);
+  }
+
   if(InitLoraSensor() != ERROR_NONE)
   {
     Serial.println("Failed to initialize LoRa");
@@ -69,8 +76,10 @@ void setup() {
 
 void loop()
 {
+  static int   FrameCount = 0;
   static float rh = 0;
   static float st = 0;
+  static int32_t Pressure = 0;
   static float BatteryLevel = 0;
   static tDataPacket DataPacket;
   digitalWrite(k_LED, HIGH); // Turn the LED on
@@ -83,10 +92,12 @@ void loop()
   // Read temperature and humidity from SHT21 sensor
   rh = get_info_SHT21(ADDR_RH);
   st = get_info_SHT21(ADDR_T);
+  Pressure = compute_pressure(); // Read pressure from BMP180 sensor
+
   BatteryLevel = getBatteryLevelRaw(); // Read the battery level
   DataPacket.Temp = st; // Store temperature in DataPacket
   DataPacket.Hum = rh;  // Store humidity in DataPacket
-  DataPacket.Pres = 0;  // Store pressure in DataPacket (not available)
+  DataPacket.Pres = Pressure;  // Store pressure in DataPacket
   DataPacket.BatteryLevelRaw = BatteryLevel; // Store battery level in DataPacket
 
   // Print the sensor data to the Serial Monitor
@@ -95,9 +106,33 @@ void loop()
   Serial.print(" C, Humidity: ");
   Serial.print(rh);
   Serial.println(" %");
+  Serial.print("Pressure: ");
+  Serial.print(Pressure);
+  Serial.println(" Pa");
+
 
   // Display the sensor data on the LCD
-  display_sensor_SHT21(st, rh);
+  switch (FrameCount)
+  {
+  case 1:
+    display_sensor_SHT21(st, rh);
+    break;
+  case 2:
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Pressure:");
+    lcd.setCursor(0, 1);
+    lcd.print(Pressure / 100.0, 0); // Display pressure in hPa
+    lcd.print("hPa");
+    break;
+  default:
+    FrameCount = 0; // Reset FrameCount if it exceeds 2
+    break;
+  }
+  FrameCount++;
+
+  
+  
   Serial.print("Battery : ");
   Serial.println(BatteryLevel);
 
@@ -110,50 +145,9 @@ void loop()
   {
     Serial.println("LoRa packet sent successfully");
   }
+  
 }
 
-
-float get_info_SHT21(char addr){
-    uint16_t temp;
-    uint8_t data[2];
-    float result=0.0;
-
-    //Request that sht21 transmits temperature data to processor
-    Wire.beginTransmission(I2C_SHT21);
-    Wire.write(addr);     //warns temperature sensor for future data collection
-    Wire.endTransmission();
-    delay(85);              //minimal delay for a good temperature transmission
-    Wire.requestFrom(I2C_SHT21,3);       //gets 3 bytes of data from SHT21 sensor
-    
-    if(Wire.available()!=3)
-    {
-        return -1;
-    }
-
-    data[0] = Wire.read();  // read data (MSB)
-    data[1] = Wire.read();  // read data (LSB)
-    Wire.read();
-
-    temp = (data[0] << 8);
-    temp += data[1];
- 
-    temp &= ~0x0003;  // clean last two bits
-    
-    if(addr==(char)ADDR_RH){
-        //result = -6.0 + 125.0*temp/pow(2.0,RES_RH);
-        //result = -6.0 + 125.0*temp/RES_RHV2;
-        //temp &= ~0x0003;  // clean last two bits
-        result = -6.0 + 125.0/65536 * (float)temp; // return relative humidity
-    }
-    else if(addr==(char)ADDR_T){
-        //result = -46.85 + 175.72*temp/RES_TV2;
-        
-        result = -46.85 + 175.72/65536 * (float)temp; // return relative humidity
-    }
-    else result = 42.0;
-
-    return result;
-}
 
 
 //display of informations from sensor SHT21

@@ -38,7 +38,7 @@ int ReceivePacket(tDataPacket* pDataPacket)
   // verify if the packet size matches the expected size
   Serial.print("Packet Size: ");
   Serial.println(packetSize);
-  if(packetSize != 12) {
+  if(packetSize != 13) {
     error = -2; // Packet size mismatch
     goto ERREUR;
   }

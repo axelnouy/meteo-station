@@ -7,7 +7,8 @@
 #define k_BATTERY_FULL_LEVEL  651 // Threshold for 100% battery level
 
 
-float convertBatteryLevelToVoltage(int batteryLevel) {
+float convertBatteryLevelToVoltage(int batteryLevel) 
+{
     // Convert the analog reading to voltage
     // The analog reading is between 0 and 1023, and the reference voltage is 5V
     float voltage = (batteryLevel / 1023.0) * 3.3;
@@ -16,7 +17,8 @@ float convertBatteryLevelToVoltage(int batteryLevel) {
     return voltage * 2.0;
 }
 
-int convertBatteryLevelToPourcentage(int batteryLevel) {
+int convertBatteryLevelToPourcentage(int batteryLevel) 
+{
     if (batteryLevel < k_BATTERY_EMPTY_LEVEL) {// <3.0V
         return k_BATTERY_EMPTY_CHAR;
     } else if (batteryLevel < k_BATTERY_25_LEVEL) {
