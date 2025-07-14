@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Station Météo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJMvSE85AypsoG-sFSwOM6EUEqkBznsSNcu3Pxai0z89i-ozaupiuOdCyjQMfGtD1mi-wZHgsWaAMVj-ZwuuGDTA');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Gill Sans', sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .circle-container {
+      position: relative;
+      width: 500px;
+      height: 500px;
+    }
+
+    .center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 300px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 15px;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 2;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .circle-image {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      transform: translate(-50%, -50%);
+    }
+
+    .btn {
+      width: 170px;
+      height: 50px;
+      font-size: 16px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 50px;
+      background: #f0d9bf;
+      color: #473d32;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .btn:hover {
+      background: #473d32;
+      color: white;
+    }
+  </style>
+  <script>
+    function placeImagesInCircle() {
+      const container = document.querySelector('.circle-container');
+      const images = container.querySelectorAll('.circle-image');
+      const radius = 200;
+      const centerX = container.offsetWidth / 2;
+      const centerY = container.offsetHeight / 2;
+      const count = images.length;
+
+      images.forEach((img, index) => {
+        const angle = (index / count) * 2 * Math.PI;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        img.style.left = `${x}px`;
+        img.style.top = `${y}px`;
+      });
+    }
+
+    window.onload = placeImagesInCircle;
+    window.onresize = placeImagesInCircle;
+  </script>
+</head>
+<body>
+  <div class="circle-container">
+    <!-- Images décoratives (même image ici, mais peut être variée) -->
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+    <img class="circle-image" src="https://static.wikia.nocookie.net/kpop/images/a/a4/J.Y._Park_Easy_Lover_concept_photo_5.png" alt="">
+
+    <!-- Contenu central -->
+    <div class="center">
+      <h1>Station Météo ESP32</h1>
+      <p><strong>Température:</strong> <span id="temperature">-- °C</span></p>
+      <p><strong>Humidité:</strong> <span id="humidity">-- %</span></p>
+      <p><strong>Pression:</strong> <span id="sensor_pressure">-- hPa</span></p>
+      <button class="btn" onclick="updateData()">Rafraîchir</button>
+    </div>
+  </div>
+
+  <script>
+    function updateData() {
+      fetch('/data')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('temperature').textContent = data.temperature + " °C";
+          document.getElementById('humidity').textContent = data.humidity + " %";
+          document.getElementById('sensor_pressure').textContent = data.sensor_pressure + " hPa";
+        })
+        .catch(err => console.error("Erreur:", err));
+    }
+
+    setInterval(updateData, 2000);
+  </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 * This code manages a portable meteo station            *
 *                                                       *
 * Authors : Adèle DE SAINT-MARTIN, Axel NOUY            *
-* Date : 11/06/2025                                     *
+* Date : 13/07/2025                                   *
 * Device : ATMega328P                                   *
 *********************************************************/
 #include <Arduino.h>
