@@ -149,12 +149,15 @@ uint32_t bmp180_get_up(void){
     data[1] = Wire.read();      //read lSB
     data[2] = Wire.read();      //read xlsb, resolution adjustment
 
-    //UP = data[0]<<16;    
-    UP = (int32_t)data[0]<<16;
-    UP |= (int32_t)data[1]<<8;       
-    UP |= (int32_t)data[2];          
+    //UP = (uint32_t)data[0]<<16;    
+    UP = (uint32_t)data[0]<<16;
+    UP |= (uint32_t)data[1]<<8;       
+    UP |= (uint32_t)data[2];          
 
     UP >>=(8-oversampling_setting);
+
+    // Assemble UP as a 19-bit value according to datasheet
+    //UP = (((uint32_t)data[0] << 16) | ((uint32_t)data[1] << 8) | (uint32_t)data[2]) >> (8 - oversampling_setting);
 
     return UP;
 }
@@ -167,7 +170,7 @@ int32_t computeB5(int32_t UT){
 }
 
 
-uint32_t compute_pressure(void){ //pressure sensor
+float compute_pressure(void){ //pressure sensor
     int32_t  UT       = 0;
     int32_t  UP       = 0;
     int32_t  cB3       = 0;

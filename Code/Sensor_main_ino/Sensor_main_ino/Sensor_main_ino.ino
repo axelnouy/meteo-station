@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 #include <LiquidCrystal.h>
 #include <Wire.h>
 #include "BMP180.h"
@@ -79,7 +77,7 @@ void setup() {
 
 void loop()
 {
-  static int   FrameCount = 0;
+  static int   FrameCount = 1;
   static float rh = 0;
   static float st = 0;
   static int32_t Pressure = 0;
@@ -112,6 +110,7 @@ void loop()
   Serial.print("Pressure: ");
   Serial.print(Pressure);
   Serial.println(" Pa");
+
 
   // Display the sensor data on the LCD
   switch (FrameCount)
